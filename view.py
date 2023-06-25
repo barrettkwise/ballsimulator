@@ -1,4 +1,3 @@
-import random
 import turtle
 
 
@@ -6,31 +5,32 @@ import turtle
 # turtle window and simulator.py
 
 class Window:
-    colors = ["red", "blue", "yellow", "purple", "orange", "pink", "brown"]
+    # List of color palettes to choose from
 
-    def __init__(self, width: int, height: int, random_colors: bool) -> None:
+    def __init__(self, width: int, height: int) -> None:
         self.turtle = turtle.Turtle()
         self.screen = turtle.Screen()
         self.width = width
         self.height = height
-        self.random_colors = random_colors
         self.__setup_window()
 
-    def __setup_window(self):
+    def __setup_window(self) -> None:
+        self.screen.title("Ball Simulator")
         self.screen.screensize(self.width, self.height)
-        self.turtle.hideturtle()
+        self.turtle.radians()
+        self.screen.tracer(False)
         self.turtle.speed("fastest")
+        self.turtle.hideturtle()
 
-    def draw_ball(self, position: tuple[float, float], ball_diameter: int) -> None:
+    def draw_ball(self, position: tuple[float, float], ball_diameter: int, color: str) -> None:
         # Move the turtle to the specified position
+        position = (round(position[0], 2), round(position[1], 2))
         self.turtle.penup()
         self.turtle.goto(position)
         self.turtle.pendown()
 
         # Draw the ball
         self.turtle.begin_fill()
-        if self.random_colors:
-            self.turtle.dot(ball_diameter, random.choice(self.colors))
-        else:
-            self.turtle.dot(ball_diameter, "black")
+        self.turtle.dot(ball_diameter, color)
         self.turtle.end_fill()
+
