@@ -1,24 +1,13 @@
 import math
 import operator
 import random
-import turtle
+from turtle import Vec2D
 
 import ball
 import view
 
 
 class Simulator:
-    def __init__(self,
-                 window_size: tuple[int, int],
-                 num_of_balls: int = random.randint(1, 30),
-                 debug: bool = False,
-                 ) -> None:
-        self.window = view.Window(window_size[0], window_size[1])
-        self.num_of_balls = num_of_balls
-        self.debug = debug
-        self.balls = []
-        self.__run_simulation()
-
     @staticmethod
     def __detect_collision(ball1_position: tuple[float, float], ball1_diameter: int, ball2: ball.BallObject) -> bool:
         # Calculate the distance between the two balls
@@ -26,7 +15,7 @@ class Simulator:
                               math.pow((ball2.position[1] - ball1_position[1]), 2)))
 
         # Calculate the sum of the two balls' radii
-        radii_sum = (ball1_diameter / 2) + (ball2.diameter / 2)
+        radii_sum = (ball1_diameter / 2) + ball2.radius
 
         # Check if the distance is less than the sum of the radii
         if distance < radii_sum:
@@ -55,6 +44,17 @@ class Simulator:
         for b in balls:
             window.draw_ball(b.position, b.diameter, b.color)
 
+    def __init__(self,
+                 window_size: tuple[int, int],
+                 num_of_balls: int = random.randint(1, 30),
+                 debug: bool = False,
+                 ) -> None:
+        self.window = view.Window(window_size[0], window_size[1])
+        self.num_of_balls = num_of_balls
+        self.debug = debug
+        self.balls = []
+        self.__run_simulation()
+
     def __run_simulation(self) -> None:
         self.__generate_balls()
         if self.debug:
@@ -65,6 +65,7 @@ class Simulator:
             Simulator.__draw_all_balls(self.balls, self.window)
             self.window.screen.update()
             self.__move_balls()
+            self.window.screen.update()
             self.window.turtle.clear()
 
     # Code run to move individual ball according to its velocity
@@ -72,19 +73,19 @@ class Simulator:
     def __move_balls(self) -> None:
         for b in self.balls:
             if self.debug:
-                print("Moving balls...")
+                print(f"Moving {b}.")
             # Calculate the new position of the ball
             new_x = b.position[0] + (b.speed * math.cos(b.angle))
             new_y = b.position[1] + (b.speed * math.sin(b.angle))
-            new_pos = turtle.Vec2D(new_x, new_y)
+            new_pos = Vec2D(new_x, new_y)
 
             # Check if the ball has collided with the wall
             if new_x + b.diameter >= self.window.width or new_x - b.diameter <= -self.window.width:
                 # If so, then change the angle of the ball
-                b.angle = math.pi - b.angle
+                b.angle -= math.tau
             if new_y + b.diameter >= self.window.height or new_y - b.diameter <= -self.window.height:
                 # If so, then change the angle of the ball
-                b.angle = math.tau - b.angle
+                b.angle -= math.tau
 
             # Check if the ball has collided with another ball
             nearby_balls = Simulator.__nearby_balls(new_pos, self.balls, b.diameter)
@@ -102,12 +103,12 @@ class Simulator:
             # Update the ball's position
             b.position = new_pos
             if self.debug:
-                print("Ball moved.")
+                print(f"{b} moved.")
 
     # Code run to create simulation environment
     def __generate_balls(self) -> None:
 
-        def generate_position(d: float, x: float = None) -> turtle.Vec2D:
+        def generate_position(d: float, x: float = None) -> Vec2D:
             def sign(s):
                 return -1 if s < 0 else 1
 
@@ -138,7 +139,7 @@ class Simulator:
             else:
                 return generate_position(d, x)
 
-            return turtle.Vec2D(x, y)
+            return Vec2D(x, y)
 
         for ball_count in range(self.num_of_balls):
             # Generate a random ball size
@@ -148,7 +149,7 @@ class Simulator:
             # such that ball is always drawn in window
             # and is not overlapping any other balls
             position_found = False
-            position = turtle.Vec2D(0, 0)
+            position = Vec2D(0, 0)
             while not position_found:
                 temp_position = generate_position(diameter)
                 if ball_count == 0:
@@ -184,12 +185,11 @@ class Simulator:
 
             # Generate a random speed and direction
             speed = random.uniform(-10, 10)
-            angle = math.radians(random.uniform(0, 360))
-            velocity = turtle.Vec2D(speed, angle)
+            angle = random.uniform(0, math.tau)
+            velocity = Vec2D(speed, angle)
 
             # Create a new ball object with the random position and velocity
             new_ball = ball.BallObject(position, velocity, diameter)
 
             # Add the new ball to the list of balls
             self.balls.append(new_ball)
-        pass
