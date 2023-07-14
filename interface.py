@@ -1,6 +1,6 @@
 import simulator
 
 # Create the simulator with the canvas size
-s = simulator.Simulator((500, 500), 10, True)
-
-
+# Good size is (620, 520)
+s = simulator.Simulator((620, 520), 10, 0.00001)
+s.start()

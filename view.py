@@ -18,13 +18,24 @@ class Window:
         self.screen.title("Ball Simulator")
         self.screen.screensize(self.width, self.height)
         self.turtle.radians()
-        self.screen.tracer(False)
+        self.screen.tracer(0, 0)
         self.turtle.speed("fastest")
         self.turtle.hideturtle()
 
+    def draw_border(self) -> None:
+        self.turtle.penup()
+        self.turtle.goto(self.width, self.height)
+        self.turtle.pendown()
+        self.turtle.goto(self.width, -self.height)
+        self.turtle.goto(-self.width, -self.height)
+        self.turtle.goto(-self.width, self.height)
+        self.turtle.goto(self.width, self.height)
+        self.turtle.penup()
+        self.turtle.goto(0, 0)
+        self.turtle.pendown()
+
     def draw_ball(self, position: tuple[float, float], ball_diameter: int, color: str) -> None:
         # Move the turtle to the specified position
-        position = (round(position[0], 2), round(position[1], 2))
         self.turtle.penup()
         self.turtle.goto(position)
         self.turtle.pendown()
