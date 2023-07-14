@@ -278,6 +278,3 @@ class Simulator:
             new_speed_y *= -1
 
         return vector.Vector2D(new_speed_x, new_speed_y)
-
-    # Code run to move individual ball according to its velocity
-    # and angle. Also check for collisions.

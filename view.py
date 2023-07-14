@@ -5,7 +5,6 @@ import turtle
 # turtle window and simulator.py
 
 class Window:
-    # List of color palettes to choose from
 
     def __init__(self, width: int, height: int) -> None:
         self.turtle = turtle.Turtle()
