@@ -16,8 +16,7 @@ class Window:
     def __setup_window(self) -> None:
         self.screen.title("Ball Simulator")
         self.screen.screensize(self.width, self.height)
-        self.turtle.radians()
-        self.screen.tracer(0, 0)
+        self.screen.tracer(0)
         self.turtle.speed("fastest")
         self.turtle.hideturtle()
 
