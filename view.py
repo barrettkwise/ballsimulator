@@ -6,11 +6,12 @@ import turtle
 
 class Window:
 
-    def __init__(self, width: int, height: int) -> None:
+    def __init__(self, width: int, height: int, drawing_accuracy: int) -> None:
         self.turtle = turtle.Turtle()
         self.screen = turtle.Screen()
         self.width = width
         self.height = height
+        self.drawing_accuracy = drawing_accuracy
         self.__setup_window()
 
     def __setup_window(self) -> None:
@@ -34,6 +35,8 @@ class Window:
         self.turtle.pendown()
 
     def draw_ball(self, position: tuple[float, float], ball_diameter: int, color: str) -> None:
+        if self.drawing_accuracy != 0:
+            position = (round(position[0], self.drawing_accuracy), round(position[1], self.drawing_accuracy))
         # Move the turtle to the specified position
         self.turtle.penup()
         self.turtle.goto(position)
