@@ -10,7 +10,7 @@ from view import Window
 class Simulator:
     @staticmethod
     def __closest_ball(pos: tuple[float, float], gen_balls: list[BallObject], search_dist: int) \
-            -> list[BallObject]:
+            -> BallObject or None:
         nearby_balls = []
         # only add balls if they are within the search distance
         # gen balls = list of currently generated balls
@@ -52,13 +52,13 @@ class Simulator:
             return None
 
     @staticmethod
-    def __detect_collision(ball1_position: tuple[float, float], ball1_diameter: int, ball2: BallObject) -> bool:
+    def __detect_collision(ball1_position: tuple[float, float], ball1_radius: int, ball2: BallObject) -> bool:
         # Calculate the distance between the two balls
         distance = math.sqrt((math.pow((ball2.position[0] - ball1_position[0]), 2) +
                               math.pow((ball2.position[1] - ball1_position[1]), 2)))
 
         # Calculate the sum of the two balls' radii
-        radii_sum = (ball1_diameter / 2) + ball2.radius
+        radii_sum = ball1_radius + ball2.radius
         # Check if the distance is less than the sum of the radii
         if distance < radii_sum:
             return True
@@ -66,7 +66,7 @@ class Simulator:
             return False
 
     @staticmethod
-    def __ball_to_ball_physics_handler(ball1: BallObject, ball2: BallObject) -> Vector2D:
+    def __ball_to_ball_physics(ball1: BallObject, ball2: BallObject) -> Vector2D:
         def compute_velocity(v1: Vector2D, v2: Vector2D, m1: float, m2: float, x1: float, x2: float) -> Vector2D:
             return v1 - (2 * m2 / (m1 + m2)) * (((v1 - v2) * (x1 - x2)) / math.pow(x1 - x2, 2)) * (x1 - x2)
 
@@ -101,10 +101,15 @@ class Simulator:
 
     def __move_balls(self) -> None:
         new_balls = []
+
+        # list of tuples representing pairs of
+        # balls that have collided
+        collision_balls = []
+
         num_of_balls = len(self.balls)
         for ball1 in range(num_of_balls):
             ball1_object = self.balls[ball1]
-            closest_ball = Simulator.__closest_ball(ball1_object.position, self.balls, 45)
+            closest_ball = Simulator.__closest_ball(ball1_object.position, self.balls, 20)
 
             if closest_ball is None:
                 ball1_new_vel = self.__wall_collision(ball1_object)
@@ -118,34 +123,53 @@ class Simulator:
             elif closest_ball is not None:
                 if self.debug:
                     print(f"Closest ball to {ball1_object} is {closest_ball}.")
-                vel_vectors = []
-                if self.__detect_collision(ball1_object.position, ball1_object.diameter, closest_ball):
+
+                if self.__detect_collision(ball1_object.position, ball1_object.radius, closest_ball):
                     if self.debug:
                         print(f"Collision detected between {ball1_object} and {closest_ball}.")
-                    # Calculate the new velocity of ball1
-                    ball1_new_vel = self.__ball_to_ball_physics_handler(ball1_object, closest_ball)
-                    vel_vectors.append(ball1_new_vel)
+                    # Add the pair of balls to list of collided balls
+                    collision_balls.append((ball1_object, closest_ball))
+                    continue
 
-                if len(vel_vectors) == 0:
+                else:
                     ball1_new_vel = self.__wall_collision(ball1_object)
                     ball1_new_x = ball1_object.position[0] + (ball1_new_vel.x * self.time_step)
                     ball1_new_y = ball1_object.position[1] + (ball1_new_vel.y * self.time_step)
                     new_pos = (ball1_new_x, ball1_new_y)
                     new_balls.append(BallObject(new_pos, ball1_new_vel, ball1_object.diameter,
                                                 ball1_object.color))
+                    continue
 
-                else:
-                    avg_vel = Vector2D(sum([v.x for v in vel_vectors]) / len(vel_vectors),
-                                       sum([v.y for v in vel_vectors]) / len(vel_vectors))
+        if len(collision_balls) > 0:
+            for pair in collision_balls:
+                reversed_pair = tuple(reversed(pair))
+                if collision_balls.count(reversed_pair) > 0:
+                    collision_balls.remove(reversed_pair)
 
-                    new_pos = (ball1_object.position[0] + (avg_vel.x * self.time_step),
-                               ball1_object.position[1] + (avg_vel.y * self.time_step))
+                ball1 = pair[0]
+                ball2 = pair[1]
 
-                    new_balls.append(
-                        BallObject(new_pos, avg_vel, ball1_object.diameter, ball1_object.color))
+                ball1_new_vel = Simulator.__ball_to_ball_physics(ball1, ball2)
+                ball2_new_vel = Simulator.__ball_to_ball_physics(ball2, ball1)
+
+                ball1_new_x = ball1.position[0] + (ball1_new_vel.x * self.time_step)
+                ball1_new_y = ball1.position[1] + (ball1_new_vel.y * self.time_step)
+
+                ball2_new_x = ball2.position[0] + (ball2_new_vel.x * self.time_step)
+                ball2_new_y = ball2.position[1] + (ball2_new_vel.y * self.time_step)
+
+                new_pos1 = (ball1_new_x, ball1_new_y)
+                new_pos2 = (ball2_new_x, ball2_new_y)
+
+                new_balls.append(BallObject(new_pos1, ball1_new_vel, ball1.diameter, ball1.color))
+                new_balls.append(BallObject(new_pos2, ball2_new_vel, ball2.diameter, ball2.color))
 
         if self.debug:
             print("Ball movement complete.")
+
+        if len(new_balls) != self.num_of_balls:
+            raise Exception("Unexpected error occurred while moving balls.")
+
         self.balls.clear()
         self.balls = new_balls
 
@@ -164,7 +188,7 @@ class Simulator:
                     op = gt
                 else:
                     op = lt
-                if op(temp_x + (x_cord_sign * d), x_cord_sign * self.window.width):
+                if op(temp_x + (x_cord_sign * d / 2), x_cord_sign * self.window.width):
                     x = temp_x
                 else:
                     return generate_position(d, None)
@@ -177,7 +201,7 @@ class Simulator:
                 op = gt
             else:
                 op = lt
-            if op(temp_y + (y_cord_sign * d), y_cord_sign * self.window.height):
+            if op(temp_y + (y_cord_sign * d / 2), y_cord_sign * self.window.height):
                 y = temp_y
             else:
                 return generate_position(d, x)
@@ -214,7 +238,7 @@ class Simulator:
                             print(f"Closest ball: {closest_ball}.")
 
                         if Simulator.__detect_collision(ball1_position=temp_position,
-                                                        ball1_diameter=diameter,
+                                                        ball1_radius=diameter / 2,
                                                         ball2=closest_ball):
                             if self.debug:
                                 print("Ball collision detected, generating new position.")
