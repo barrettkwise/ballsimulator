@@ -9,26 +9,47 @@ from view import Window
 
 class Simulator:
     @staticmethod
-    def __nearby_balls(pos: tuple[float, float], gen_balls: list[BallObject], search_dist: int) \
+    def __closest_ball(pos: tuple[float, float], gen_balls: list[BallObject], search_dist: int) \
             -> list[BallObject]:
         nearby_balls = []
         # only add balls if they are within the search distance
         # gen balls = list of currently generated balls
         for b in gen_balls:
-            top = (b.position[0], b.position[1] + b.radius)
-            bottom = (b.position[0], b.position[1] - b.radius)
-            left = (b.position[0] - b.radius, b.position[1])
-            right = (b.position[0] + b.radius, b.position[1])
-            points = [[top, False], [bottom, False], [left, False], [right, False]]
-            for point in points:
-                dist = math.sqrt((math.pow((point[0][0] - pos[0]), 2) + math.pow((point[0][1] - pos[1]), 2)))
-                if dist < search_dist:
-                    point[1] = True
+            if b.position == pos:
+                continue
+            rough_dist = math.sqrt((math.pow((b.position[0] - pos[0]), 2) +
+                                    math.pow((b.position[1] - pos[1]), 2)))
+            # only do further check on balls with a center to center distance
+            # less than the search distance
+            if rough_dist < search_dist:
+                distances = []
+                top = (b.position[0], b.position[1] + b.radius)
+                bottom = (b.position[0], b.position[1] - b.radius)
+                left = (b.position[0] - b.radius, b.position[1])
+                right = (b.position[0] + b.radius, b.position[1])
+                points = ([top, False], [bottom, False], [left, False], [right, False])
+                for point in points:
+                    dist = math.sqrt((math.pow((point[0][0] - pos[0]), 2) +
+                                      math.pow((point[0][1] - pos[1]), 2)))
+                    if dist <= search_dist:
+                        point[1] = True
+                        distances.append(dist)
 
-            if all([point[1] for point in points]):
-                nearby_balls.append(b)
+                # if all points are within the search distance, add the ball
+                if all([point[1] for point in points]):
+                    nearby_balls.append((b, min(distances)))
 
-        return nearby_balls
+        if len(nearby_balls) == 1:
+            nearest_ball = nearby_balls[0][0]
+            return nearest_ball
+
+        elif len(nearby_balls) > 1:
+            nearby_balls.sort(key=lambda x: x[1])
+            nearest_ball = nearby_balls[0][0]
+            return nearest_ball
+
+        else:
+            return None
 
     @staticmethod
     def __detect_collision(ball1_position: tuple[float, float], ball1_diameter: int, ball2: BallObject) -> bool:
@@ -83,10 +104,9 @@ class Simulator:
         num_of_balls = len(self.balls)
         for ball1 in range(num_of_balls):
             ball1_object = self.balls[ball1]
-            nearby_balls = Simulator.__nearby_balls(ball1_object.position, self.balls, 45)
-            num_of_nearby_balls = len(nearby_balls)
+            closest_ball = Simulator.__closest_ball(ball1_object.position, self.balls, 45)
 
-            if num_of_nearby_balls == 0:
+            if closest_ball is None:
                 ball1_new_vel = self.__wall_collision(ball1_object)
                 ball1_new_x = ball1_object.position[0] + (ball1_new_vel.x * self.time_step)
                 ball1_new_y = ball1_object.position[1] + (ball1_new_vel.y * self.time_step)
@@ -95,20 +115,16 @@ class Simulator:
                                             self.balls[ball1].color))
                 continue
 
-            elif num_of_nearby_balls > 0:
+            elif closest_ball is not None:
                 if self.debug:
-                    print(f"Ball {ball1} has {num_of_nearby_balls} nearby balls.")
+                    print(f"Closest ball to {ball1_object} is {closest_ball}.")
                 vel_vectors = []
-                for ball2 in nearby_balls:
-                    # Check if ball1 and ball2 have collided
-                    if Simulator.__detect_collision(ball1_position=ball1_object.position,
-                                                    ball1_diameter=ball1_object.diameter,
-                                                    ball2=ball2) and ball1_object is not ball2:
-                        if self.debug:
-                            print(f"Collision detected between {ball1_object} and {ball2}.")
-                        # Calculate the new velocity of ball1
-                        ball1_new_vel = self.__ball_to_ball_physics_handler(ball1_object, ball2)
-                        vel_vectors.append(ball1_new_vel)
+                if self.__detect_collision(ball1_object.position, ball1_object.diameter, closest_ball):
+                    if self.debug:
+                        print(f"Collision detected between {ball1_object} and {closest_ball}.")
+                    # Calculate the new velocity of ball1
+                    ball1_new_vel = self.__ball_to_ball_physics_handler(ball1_object, closest_ball)
+                    vel_vectors.append(ball1_new_vel)
 
                 if len(vel_vectors) == 0:
                     ball1_new_vel = self.__wall_collision(ball1_object)
@@ -174,8 +190,9 @@ class Simulator:
             position_found = False
             position = (0, 0)
             diameter = 0
+            closest_ball = None
             while not position_found:
-                diameter = random.randint(10, 30)
+                diameter = random.randint(10, 15)
                 temp_position = generate_position(diameter)
                 if ball_count == 0:
                     if self.debug:
@@ -184,21 +201,21 @@ class Simulator:
                     position_found = True
 
                 elif ball_count > 0:
-                    nearby_balls = Simulator.__nearby_balls(temp_position, self.balls, 45)
-                    len_nearby_balls = len(nearby_balls)
+                    closest_ball = Simulator.__closest_ball(temp_position, self.balls, 45)
 
-                    if len_nearby_balls == 0:
+                    if closest_ball is None:
                         if self.debug:
                             print("No nearby balls detected, ball position generated.")
                         position = temp_position
                         position_found = True
 
-                    elif len_nearby_balls > 0:
+                    elif closest_ball is not None:
                         if self.debug:
-                            print(f"{len_nearby_balls} Nearby balls detected: {nearby_balls}.")
+                            print(f"Closest ball: {closest_ball}.")
 
-                        if True in [Simulator.__detect_collision(temp_position, diameter, ball)
-                                    for ball in nearby_balls]:
+                        if Simulator.__detect_collision(ball1_position=temp_position,
+                                                        ball1_diameter=diameter,
+                                                        ball2=closest_ball):
                             if self.debug:
                                 print("Ball collision detected, generating new position.")
                             continue
