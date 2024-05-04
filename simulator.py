@@ -1,21 +1,22 @@
 import math
+import os
 import random
 import time as Timer
-import os
 
 from ball import BallObject
+from file_handler import load_from_file as load
+from file_handler import save_to_file as save
 from vector import Vector2D
 from view import Window
-from file_handler import save_to_file as save
-from file_handler import load_from_file as load
 
 
 class Simulator:
     """A class to simulate the movement of balls in a window."""
 
     @staticmethod
-    def __closest_ball(pos: tuple[float, float], gen_balls: list[BallObject], search_dist: float) \
-            -> BallObject or None:
+    def __closest_ball(
+        pos: tuple[float, float], gen_balls: list[BallObject], search_dist: float
+    ) -> BallObject or None:
         """
         Finds the closest ball to a given position.
         :param pos: tuple[float, float]
@@ -37,30 +38,35 @@ class Simulator:
             if b.position == pos:
                 continue
             # rough_dist = distance between the centers of the two balls
-            rough_dist = math.sqrt((math.pow((b.position[0] - pos[0]), 2) +
-                                    math.pow((b.position[1] - pos[1]), 2)))
+            rough_dist = math.sqrt(
+                (
+                    math.pow((b.position[0] - pos[0]), 2)
+                    + math.pow((b.position[1] - pos[1]), 2)
+                )
+            )
             # only do further check on balls with a center to center distance
             # less than or equal to the search distance
             if rough_dist <= search_dist:
-                points = {
-                    "top": [(b.position[0], b.position[1] + b.radius), False],
-                    "bottom": [(b.position[0], b.position[1] - b.radius), False],
-                    "left": [(b.position[0] - b.radius, b.position[1]), False],
-                    "right": [(b.position[0] + b.radius, b.position[1]), False]
-                }
+                points = (
+                    [(b.position[0], b.position[1] + b.radius), False],
+                    [(b.position[0], b.position[1] - b.radius), False],
+                    [(b.position[0] - b.radius, b.position[1]), False],
+                    [(b.position[0] + b.radius, b.position[1]), False],
+                )
                 distances = []
-                for point in points.keys():
-                    cords = points[point][0]
-                    dist = math.sqrt(math.pow(cords[0] - pos[0], 2) +
-                                     math.pow(cords[1] - pos[1], 2))
+                for point in points:
+                    cords = point[0]
+                    dist = math.sqrt(
+                        math.pow(cords[0] - pos[0], 2) + math.pow(cords[1] - pos[1], 2)
+                    )
                     if dist <= search_dist:
-                        points[point][1] = True
+                        point[1] = True
                         distances.append(dist)
                     else:
                         break
 
                 # if all points are within the search distance, add the ball
-                if all([point[1] for point in points.values()]):
+                if all([point[1] for point in points]):
                     nearby_balls.append((b, min(distances)))
 
         len_nearby_balls = len(nearby_balls)
@@ -77,8 +83,12 @@ class Simulator:
             return None
 
     @staticmethod
-    def __detect_collision(ball1_position: tuple[float, float], ball1_radius: float,
-                           ball2: tuple[float, float], ball2_radius: float) -> bool:
+    def __detect_collision(
+        ball1_position: tuple[float, float],
+        ball1_radius: float,
+        ball2: tuple[float, float],
+        ball2_radius: float,
+    ) -> bool:
         """
         Detects if two balls have collided.
         :param ball1_position: tuple[float, float]
@@ -97,8 +107,12 @@ class Simulator:
             raise TypeError("ball2_radius parameter must be an int or float.")
 
         # Calculate the distance between the two balls
-        distance = math.sqrt((math.pow((ball2[0] - ball1_position[0]), 2) +
-                              math.pow((ball2[1] - ball1_position[1]), 2)))
+        distance = math.sqrt(
+            (
+                math.pow((ball2[0] - ball1_position[0]), 2)
+                + math.pow((ball2[1] - ball1_position[1]), 2)
+            )
+        )
 
         # Calculate the sum of the two balls' radii
         radii_sum = ball1_radius + ball2_radius
@@ -118,16 +132,26 @@ class Simulator:
         if not isinstance(ball2, BallObject):
             raise TypeError("ball2 parameter must be a BallObject.")
 
-        def compute_velocity(v1: Vector2D, v2: Vector2D, m1: float,
-                             m2: float, x1: float, x2: float) -> Vector2D: return v1 - (2 * m2 / (m1 + m2)) \
-            * (((v1 - v2) * (x1 - x2)) / math.pow(x1 - x2, 2)) * (x1 - x2)
+        def compute_velocity(
+            v1: Vector2D, v2: Vector2D, m1: float, m2: float, x1: float, x2: float
+        ) -> Vector2D:
+            return v1 - (2 * m2 / (m1 + m2)) * (
+                ((v1 - v2) * (x1 - x2)) / math.pow(x1 - x2, 2)
+            ) * (x1 - x2)
 
-        return compute_velocity(ball1.velocity, ball2.velocity, ball1.mass, ball2.mass,
-                                ball1.position[0], ball2.position[0])
+        return compute_velocity(
+            ball1.velocity,
+            ball2.velocity,
+            ball1.mass,
+            ball2.mass,
+            ball1.position[0],
+            ball2.position[0],
+        )
 
     @staticmethod
-    def __get_quadrant(position: tuple[float, float] or None, ball: BallObject or None) \
-            -> int or BallObject:
+    def __get_quadrant(
+        position: tuple[float, float] or None, ball: BallObject or None
+    ) -> int or BallObject:
         """
         Find which quadrant the ball is in. If ball parameter is supplied, will update
         ball.quadrant attribute. If ball parameter is None, will return the quadrant as an int.
@@ -140,7 +164,13 @@ class Simulator:
         if not isinstance(ball, BallObject) and ball is not None:
             raise TypeError("ball parameter must be a BallObject or None.")
 
+        position = round(position[0], 2), round(position[1], 2)
+
         if position is not None:
+            # check if close to the axis
+            if abs(position[0]) <= 10 or abs(position[1]) <= 10:
+                return 4
+
             if position[0] > 0:
                 if position[1] > 0:
                     return 0
@@ -153,6 +183,11 @@ class Simulator:
                     return 2
 
         else:
+            # check if close to the axis
+            if abs(ball.position[0]) <= 10 or abs(ball.position[1]) <= 10:
+                ball.quadrant = 4
+                return ball
+
             if ball.position[0] > 0:
                 if ball.position[1] > 0:
                     ball.quadrant = 0
@@ -168,16 +203,17 @@ class Simulator:
                     ball.quadrant = 2
                     return ball
 
-    def __init__(self,
-                 window_size: tuple[int, int],
-                 num_of_balls: int = random.randint(2, 100),
-                 load_from_file: bool = False,
-                 save_to_file: bool = False,
-                 time_step: float = 0.05,
-                 drawing_accuracy: int = 0,
-                 length_of_simulation: float or None = None,
-                 debug: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        window_size: tuple[int, int],
+        num_of_balls: int = random.randint(2, 100),
+        load_from_file: bool = False,
+        save_to_file: bool = False,
+        time_step: float = 0.01,
+        drawing_accuracy: int = 0,
+        length_of_simulation: float or None = None,
+        debug: bool = False,
+    ) -> None:
         """
         Initializes a Simulator object.
         drawing_accuracy is the number of decimal places to round to when drawing the balls.
@@ -190,7 +226,10 @@ class Simulator:
         """
         self.window = Window(window_size[0], window_size[1], drawing_accuracy)
         self.num_of_balls = num_of_balls
-        self.balls = ([], [], [], [])
+        # dict of lists representing the quadrants of the window
+        # each list contains the balls in that quadrant
+        # the last list is for balls close to the axis
+        self.balls = {0: [], 1: [], 2: [], 3: [], 4: []}
         self.time = 0.0
         self.time_step = time_step
         self.search_dist = max(self.window.width, self.window.height) / 2
@@ -207,13 +246,17 @@ class Simulator:
         """
         self.window.draw_border()
         if self.load_from_file:
-            self.balls = load("balls.pkl")
+            # change to the file path where the balls are saved
+            load_file = "balls.pkl"
+            self.balls = load(file)
             if self.debug:
                 print("Loaded balls from file.")
         else:
             self.__generate_balls()
             if self.save_to_file:
-                save(self.balls, "balls.pkl")
+                # change to the file path where the balls will be saved
+                save_file = "balls.pkl"
+                save(self.balls, save_file)
             if self.debug:
                 print("Ball generation complete.\nStarting simulation.")
 
@@ -230,8 +273,7 @@ class Simulator:
             self.window.turtle.clear()
             self.time += self.time_step
             if self.save_to_file:
-                # save the state of the balls to a file
-                save(self.balls, "balls.pkl")
+                save(self.balls, save_file)
 
     def __move_balls(self) -> None:
         """
@@ -240,25 +282,35 @@ class Simulator:
         """
         # tuple of lists representing the quadrants of the window
         # each list contains the balls in that quadrant
-        new_balls = ([], [], [], [])
+        new_balls = {0: [], 1: [], 2: [], 3: [], 4: []}
 
         # list of tuples representing pairs of
         # balls that have collided
         collision_balls = []
 
-        for quadrant in self.balls:
+        for q in self.balls:
+            if self.debug:
+                print(f"Current Quadrant: {q}")
+            quadrant = self.balls[q]
             if len(quadrant) == 0:
                 continue
             if len(quadrant) == 1:
                 ball1_new_vel = self.__wall_collision(quadrant[0])
-                ball1_new_x = quadrant[0].position[0] + \
-                    (ball1_new_vel.x * self.time_step)
-                ball1_new_y = quadrant[0].position[1] + \
-                    (ball1_new_vel.y * self.time_step)
+                ball1_new_x = quadrant[0].position[0] + (
+                    ball1_new_vel.x * self.time_step
+                )
+                ball1_new_y = quadrant[0].position[1] + (
+                    ball1_new_vel.y * self.time_step
+                )
                 new_pos = (ball1_new_x, ball1_new_y)
                 new_quadrant = Simulator.__get_quadrant(new_pos, None)
-                new_ball = BallObject(new_pos, ball1_new_vel, quadrant[0].diameter,
-                                      new_quadrant, quadrant[0].color)
+                new_ball = BallObject(
+                    new_pos,
+                    ball1_new_vel,
+                    quadrant[0].diameter,
+                    new_quadrant,
+                    quadrant[0].color,
+                )
                 new_balls[new_quadrant].append(new_ball)
                 continue
 
@@ -268,43 +320,42 @@ class Simulator:
 
                 else:
                     closest_ball = Simulator.__closest_ball(
-                        ball.position, quadrant, self.search_dist)
+                        ball.position,
+                        [b for b in quadrant if b is not ball],
+                        self.search_dist,
+                    )
 
                 if closest_ball is None:
                     ball1_new_vel = self.__wall_collision(ball)
-                    ball1_new_x = ball.position[0] + \
-                        (ball1_new_vel.x * self.time_step)
-                    ball1_new_y = ball.position[1] + \
-                        (ball1_new_vel.y * self.time_step)
+                    ball1_new_x = ball.position[0] + (ball1_new_vel.x * self.time_step)
+                    ball1_new_y = ball.position[1] + (ball1_new_vel.y * self.time_step)
                     new_pos = (ball1_new_x, ball1_new_y)
                     new_quadrant = Simulator.__get_quadrant(new_pos, None)
-                    new_ball = BallObject(new_pos, ball1_new_vel, ball.diameter,
-                                          new_quadrant, ball.color)
+                    new_ball = BallObject(
+                        new_pos, ball1_new_vel, ball.diameter, new_quadrant, ball.color
+                    )
                     new_balls[new_quadrant].append(new_ball)
                     continue
 
                 if closest_ball is not None:
-                    if self.debug:
-                        print(f"Closest ball to {ball} is {closest_ball}.")
-
-                    if self.__detect_collision(ball.position, ball.radius,
-                                               closest_ball.position, closest_ball.radius):
-                        if self.debug:
-                            print(f"Collision detected between {
-                                  ball} and {closest_ball}.")
+                    if self.__detect_collision(
+                        ball.position,
+                        ball.radius,
+                        closest_ball.position,
+                        closest_ball.radius,
+                    ):
                         # Add the pair of balls to list of collided balls
                         collision_balls.append((ball, closest_ball))
                         continue
 
                     ball1_new_vel = self.__wall_collision(ball)
-                    ball1_new_x = ball.position[0] + \
-                        (ball1_new_vel.x * self.time_step)
-                    ball1_new_y = ball.position[1] + \
-                        (ball1_new_vel.y * self.time_step)
+                    ball1_new_x = ball.position[0] + (ball1_new_vel.x * self.time_step)
+                    ball1_new_y = ball.position[1] + (ball1_new_vel.y * self.time_step)
                     new_pos = (ball1_new_x, ball1_new_y)
                     new_quadrant = Simulator.__get_quadrant(new_pos, None)
                     new_ball = BallObject(
-                        new_pos, ball1_new_vel, ball.diameter, new_quadrant, ball.color)
+                        new_pos, ball1_new_vel, ball.diameter, new_quadrant, ball.color
+                    )
                     new_balls[new_quadrant].append(new_ball)
 
         if len(collision_balls) > 0:
@@ -319,31 +370,42 @@ class Simulator:
                 ball1_new_vel = Simulator.__ball_to_ball_physics(ball1, ball2)
                 ball2_new_vel = Simulator.__ball_to_ball_physics(ball2, ball1)
 
-                ball1_new_x = ball1.position[0] + \
-                    (ball1_new_vel.x * self.time_step)
-                ball1_new_y = ball1.position[1] + \
-                    (ball1_new_vel.y * self.time_step)
+                ball1_new_x = ball1.position[0] + (ball1_new_vel.x * self.time_step)
+                ball1_new_y = ball1.position[1] + (ball1_new_vel.y * self.time_step)
 
-                ball2_new_x = ball2.position[0] + \
-                    (ball2_new_vel.x * self.time_step)
-                ball2_new_y = ball2.position[1] + \
-                    (ball2_new_vel.y * self.time_step)
+                ball2_new_x = ball2.position[0] + (ball2_new_vel.x * self.time_step)
+                ball2_new_y = ball2.position[1] + (ball2_new_vel.y * self.time_step)
 
                 new_pos1 = (ball1_new_x, ball1_new_y)
                 new_pos2 = (ball2_new_x, ball2_new_y)
 
                 new_quadrant1 = Simulator.__get_quadrant(new_pos1, None)
-                new_balls[new_quadrant1].append(BallObject(new_pos1, ball1_new_vel, ball1.diameter,
-                                                           new_quadrant1, ball1.color))
+                new_balls[new_quadrant1].append(
+                    BallObject(
+                        new_pos1,
+                        ball1_new_vel,
+                        ball1.diameter,
+                        new_quadrant1,
+                        ball1.color,
+                    )
+                )
 
                 new_quadrant2 = Simulator.__get_quadrant(new_pos2, None)
-                new_balls[new_quadrant2].append(BallObject(new_pos2, ball2_new_vel, ball2.diameter,
-                                                           new_quadrant2, ball2.color))
+                new_balls[new_quadrant2].append(
+                    BallObject(
+                        new_pos2,
+                        ball2_new_vel,
+                        ball2.diameter,
+                        new_quadrant2,
+                        ball2.color,
+                    )
+                )
 
         if self.debug:
             print("Ball movement complete.")
-            print(f"Number of balls: {
-                  sum(len(quadrant) for quadrant in self.balls)}")
+            print(
+                f"Number of balls: {sum(len(self.balls[quadrant]) for quadrant in self.balls)}"
+            )
             print(f"Number of expected balls: {self.num_of_balls}")
         del self.balls
         self.balls = new_balls
@@ -355,9 +417,9 @@ class Simulator:
         """
 
         def generate_position(d: int) -> tuple[float, float]:
-            return random.uniform(-self.window.width + d / 2, self.window.width - d / 2), \
-                random.uniform(-self.window.height + d / 2,
-                               self.window.height - d / 2)
+            return random.uniform(
+                -self.window.width + d / 2, self.window.width - d / 2
+            ), random.uniform(-self.window.height + d / 2, self.window.height - d / 2)
 
         for ball_count in range(self.num_of_balls):
             # Generate a random position within the window
@@ -379,14 +441,19 @@ class Simulator:
                     position_found = True
 
                 elif ball_count > 0:
-                    closest_ball = Simulator.__closest_ball(temp_position,
-                                                            [ball for quadrant in self.balls for ball in quadrant],
-                                                            self.search_dist)
+                    closest_ball = Simulator.__closest_ball(
+                        temp_position,
+                        [
+                            ball
+                            for quadrant in self.balls
+                            for ball in self.balls[quadrant]
+                        ],
+                        self.search_dist,
+                    )
 
                     if closest_ball is None:
                         if self.debug:
-                            print(
-                                "No nearby balls detected, ball position generated.")
+                            print("No nearby balls detected, ball position generated.")
                         position = temp_position
                         quadrant = temp_quadrant
                         position_found = True
@@ -395,19 +462,23 @@ class Simulator:
                         if self.debug:
                             print(f"Closest ball: {closest_ball}.")
 
-                        if Simulator.__detect_collision(ball1_position=temp_position,
-                                                        ball1_radius=diameter / 2,
-                                                        ball2=closest_ball.position,
-                                                        ball2_radius=closest_ball.radius):
+                        if Simulator.__detect_collision(
+                            ball1_position=temp_position,
+                            ball1_radius=diameter / 2,
+                            ball2=closest_ball.position,
+                            ball2_radius=closest_ball.radius,
+                        ):
                             if self.debug:
                                 print(
-                                    "Ball collision detected, generating new position.")
+                                    "Ball collision detected, generating new position."
+                                )
                             continue
 
                         else:
                             if self.debug:
                                 print(
-                                    "No ball collision detected, ball position generated.")
+                                    "No ball collision detected, ball position generated."
+                                )
                             position = temp_position
                             quadrant = temp_quadrant
                             position_found = True
@@ -418,8 +489,7 @@ class Simulator:
             velocity = Vector2D(speed_x, speed_y)
 
             # Create a new ball object with the random position, velocity, diameter, and color
-            new_ball = BallObject(position, velocity, diameter,
-                                  quadrant, color=None)
+            new_ball = BallObject(position, velocity, diameter, quadrant, color=None)
 
             # Add the new ball to its quadrant list
             self.balls[quadrant].append(new_ball)
@@ -451,5 +521,5 @@ class Simulator:
         Draws all balls in the window.
         :return: None
         """
-        for b in [ball for quadrant in self.balls for ball in quadrant]:
+        for b in [ball for quadrant in self.balls for ball in self.balls[quadrant]]:
             self.window.draw_ball(b.position, b.diameter, b.color)

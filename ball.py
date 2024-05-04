@@ -1,24 +1,32 @@
 # Class for ball object
 import random
+from math import pi
+
 from vector import Vector2D
-from math import pi, pow
 
 
 class BallObject:
     colors = ["red", "lime", "blue", "yellow", "cyan", "magenta", "#826ba8", "pink"]
-    materials = {"red": 1.2,
-                 "lime": 1.3,
-                 "blue": 1.5,
-                 "yellow": 1.1,
-                 "cyan": 1.4,
-                 "magenta": 2,
-                 "orange": 1,
-                 "#826ba8": 1.7,
-                 "pink": 1.8
-                 }
+    materials = {
+        "red": 1.2,
+        "lime": 1.3,
+        "blue": 1.5,
+        "yellow": 1.1,
+        "cyan": 1.4,
+        "magenta": 2,
+        "orange": 1,
+        "#826ba8": 1.7,
+        "pink": 1.8,
+    }
 
-    def __init__(self, position: tuple[float, float], velocity: Vector2D,
-                 diameter: int, quadrant: int, color: str or None) -> None:
+    def __init__(
+        self,
+        position: tuple[float, float],
+        velocity: Vector2D,
+        diameter: int,
+        quadrant: int,
+        color: str or None,
+    ) -> None:
         self.position = position  # x cord and y cord
         self.velocity = velocity  # velocity vector
         self.speed_x = self.velocity.x  # x component of velocity
