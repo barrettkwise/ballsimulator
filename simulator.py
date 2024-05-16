@@ -244,11 +244,13 @@ class Simulator:
         Starts the simulation.
         :return: None
         """
+        step_count = 0
+        elapsed_time = 0.0
         self.window.draw_border()
         if self.load_from_file:
             # change to the file path where the balls are saved
             load_file = "balls.pkl"
-            self.balls = load(file)
+            self.balls = load(load_file)
             if self.debug:
                 print("Loaded balls from file.")
         else:
@@ -261,17 +263,21 @@ class Simulator:
                 print("Ball generation complete.\nStarting simulation.")
 
         while True:
+            begin_time = Timer.process_time()
             if self.length_of_simulation is not None:
                 if Timer.process_time() >= self.length_of_simulation:
                     os.kill(self.pid, 9)
-
+            self.window.sim_info(step_count, elapsed_time)
             self.window.draw_border()
             self.window.draw_axis()
             self.__draw_all_balls()
             self.window.screen.update()
             self.__move_balls()
+            end_time = Timer.process_time()
             self.window.turtle.clear()
             self.time += self.time_step
+            step_count += 1
+            elapsed_time = end_time - begin_time
             if self.save_to_file:
                 save(self.balls, save_file)
 

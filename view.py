@@ -2,7 +2,9 @@ import turtle
 
 
 class Window:
-    """Window class for handling interactions between the turtle window and the simulator."""
+    """
+    Window class for handling interactions between the turtle window and the simulator.
+    """
 
     def __init__(self, width: int, height: int, drawing_accuracy: int) -> None:
         if not all(isinstance(i, int) for i in (width, height, drawing_accuracy)):
@@ -18,7 +20,7 @@ class Window:
     def __setup_window(self) -> None:
         """
         Set up the window for the simulator.
-        return: None
+        :return: None
         """
         self.screen.title("Ball Simulator")
         self.screen.screensize(self.width, self.height)
@@ -29,7 +31,7 @@ class Window:
     def draw_border(self) -> None:
         """
         Draw a border around the window.
-        return: None
+        :return: None
         """
         self.turtle.penup()
         self.turtle.goto(self.width, self.height)
@@ -45,7 +47,7 @@ class Window:
     def draw_axis(self) -> None:
         """
         Draw the x and y axes.
-        return: None
+        :return: None
         """
         self.turtle.penup()
         self.turtle.goto(0, self.height)
@@ -59,15 +61,38 @@ class Window:
         self.turtle.goto(0, 0)
         self.turtle.pendown()
 
+    def sim_info(self, step: int, iteration_time: float) -> None:
+        """
+        Display infomation about the simulation.
+        :param: step: int
+        :param: iteration_time: float
+        :return: None
+        """
+        if not isinstance(step, int):
+            raise TypeError("Step must be an integer")
+        if not isinstance(iteration_time, float):
+            raise TypeError("Iteration time must be a float")
+
+        self.turtle.penup()
+        # put the step count in the top left corner
+        self.turtle.goto(-self.width + 10, self.height - 20)
+        self.turtle.write(f"Step: {step}", font=("Arial", 12, "normal"))
+        # put the iteration time below the step count
+        self.turtle.goto(-self.width + 10, self.height - 40)
+        self.turtle.write(
+            f"Iteration Time: {iteration_time:.2f} ms",
+            font=("Arial", 12, "normal"),
+        )
+
     def draw_ball(
         self, position: tuple[float, float], ball_diameter: int, color: str
     ) -> None:
         """
         Draw a ball at the specified position with the specified diameter and color.
-        param: position: tuple of floats
-        param: ball_diameter: int
-        param: color: str
-        return: None
+        :param: position: tuple of floats
+        :param: ball_diameter: int
+        :param: color: str
+        :return: None
         """
         if not all(isinstance(i, (float, int)) for i in position):
             raise TypeError("Position must be a tuple of floats")
