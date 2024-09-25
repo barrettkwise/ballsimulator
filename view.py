@@ -7,6 +7,13 @@ class Window:
     """
 
     def __init__(self, width: int, height: int, drawing_accuracy: int) -> None:
+        """
+        Create a new window with the specified width, height, and drawing accuracy.
+        :param: width: int
+        :param: height: int
+        :param: drawing_accuracy: int
+        :return: None
+        """
         if not all(isinstance(i, int) for i in (width, height, drawing_accuracy)):
             raise TypeError("Width, height, and drawing accuracy must be integers")
 
@@ -61,17 +68,23 @@ class Window:
         self.turtle.goto(0, 0)
         self.turtle.pendown()
 
-    def sim_info(self, step: int, iteration_time: float) -> None:
+    def sim_info(
+        self, step: int, iteration_time: float, num_of_balls: int, memory_usage: int
+    ) -> None:
         """
         Display infomation about the simulation.
         :param: step: int
         :param: iteration_time: float
+        :param: num_of_balls: int
+        :param: memory_usage: int
         :return: None
         """
         if not isinstance(step, int):
             raise TypeError("Step must be an integer")
         if not isinstance(iteration_time, float):
             raise TypeError("Iteration time must be a float")
+        if not isinstance(num_of_balls, int):
+            raise TypeError("Number of balls must be an integer")
 
         self.turtle.penup()
         # put the step count in the top left corner
@@ -80,8 +93,18 @@ class Window:
         # put the iteration time below the step count
         self.turtle.goto(-self.width + 10, self.height - 40)
         self.turtle.write(
-            f"Iteration Time: {iteration_time:.2f} ms",
+            f"Iteration Time: {round(iteration_time, 2)} ms",
             font=("Arial", 12, "normal"),
+        )
+        # put the number of balls below the iteration time
+        # also put the amount of memory used by the balls
+        self.turtle.goto(-self.width + 10, self.height - 60)
+        self.turtle.write(
+            f"Number of Balls: {num_of_balls}", font=("Arial", 12, "normal")
+        )
+        self.turtle.goto(-self.width + 10, self.height - 80)
+        self.turtle.write(
+            f"Memory Usage: {memory_usage} bytes", font=("Arial", 12, "normal")
         )
 
     def draw_ball(

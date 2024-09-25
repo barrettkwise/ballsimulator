@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import sys
 import time as Timer
 
 from ball import BallObject
@@ -16,7 +17,7 @@ class Simulator:
     @staticmethod
     def __closest_ball(
         pos: tuple[float, float], gen_balls: list[BallObject], search_dist: float
-    ) -> BallObject or None:
+    ) -> BallObject | None:
         """
         Finds the closest ball to a given position.
         :param pos: tuple[float, float]
@@ -150,8 +151,8 @@ class Simulator:
 
     @staticmethod
     def __get_quadrant(
-        position: tuple[float, float] or None, ball: BallObject or None
-    ) -> int or BallObject:
+        position: tuple[float, float] | None, ball: BallObject | None
+    ) -> int | BallObject:
         """
         Find which quadrant the ball is in. If ball parameter is supplied, will update
         ball.quadrant attribute. If ball parameter is None, will return the quadrant as an int.
@@ -164,9 +165,8 @@ class Simulator:
         if not isinstance(ball, BallObject) and ball is not None:
             raise TypeError("ball parameter must be a BallObject or None.")
 
-        position = round(position[0], 2), round(position[1], 2)
-
         if position is not None:
+            position = round(position[0], 2), round(position[1], 2)
             # check if close to the axis
             if abs(position[0]) <= 10 or abs(position[1]) <= 10:
                 return 4
@@ -182,7 +182,7 @@ class Simulator:
                 else:
                     return 2
 
-        else:
+        elif ball is not None:
             # check if close to the axis
             if abs(ball.position[0]) <= 10 or abs(ball.position[1]) <= 10:
                 ball.quadrant = 4
@@ -203,6 +203,9 @@ class Simulator:
                     ball.quadrant = 2
                     return ball
 
+        else:
+            raise ValueError("position or ball parameter must be supplied.")
+
     def __init__(
         self,
         window_size: tuple[int, int],
@@ -211,7 +214,7 @@ class Simulator:
         save_to_file: bool = False,
         time_step: float = 0.01,
         drawing_accuracy: int = 0,
-        length_of_simulation: float or None = None,
+        length_of_simulation: float | None = None,
         debug: bool = False,
     ) -> None:
         """
@@ -224,6 +227,23 @@ class Simulator:
         :param length_of_simulation: float or None
         :param debug: bool
         """
+        if not isinstance(window_size, tuple):
+            raise TypeError("window_size parameter must be a tuple.")
+        if not isinstance(num_of_balls, int):
+            raise TypeError("num_of_balls parameter must be an integer.")
+        if not isinstance(load_from_file, bool):
+            raise TypeError("load_from_file parameter must be a boolean.")
+        if not isinstance(save_to_file, bool):
+            raise TypeError("save_to_file parameter must be a boolean.")
+        if not isinstance(time_step, float):
+            raise TypeError("time_step parameter must be a float.")
+        if not isinstance(drawing_accuracy, int):
+            raise TypeError("drawing_accuracy parameter must be an integer.")
+        if not isinstance(length_of_simulation, (float, type(None))):
+            raise TypeError("length_of_simulation parameter must be a float or None.")
+        if not isinstance(debug, bool):
+            raise TypeError("debug parameter must be a boolean.")
+
         self.window = Window(window_size[0], window_size[1], drawing_accuracy)
         self.num_of_balls = num_of_balls
         # dict of lists representing the quadrants of the window
@@ -267,7 +287,15 @@ class Simulator:
             if self.length_of_simulation is not None:
                 if Timer.process_time() >= self.length_of_simulation:
                     os.kill(self.pid, 9)
-            self.window.sim_info(step_count, elapsed_time)
+            num_of_balls = sum(len(self.balls[quadrant]) for quadrant in self.balls)
+            ball_memory = sum(
+                (
+                    sys.getsizeof(ball)
+                    for quadrant in self.balls
+                    for ball in self.balls[quadrant]
+                )
+            )
+            self.window.sim_info(step_count, elapsed_time, num_of_balls, ball_memory)
             self.window.draw_border()
             self.window.draw_axis()
             self.__draw_all_balls()
@@ -432,9 +460,9 @@ class Simulator:
             # such that ball is always drawn in window
             # and is not overlapping any other balls
             position_found = False
-            position = None
-            quadrant = None
-            diameter = None
+            position = (0.0, 0.0)
+            quadrant = 0
+            diameter = 0
             while not position_found:
                 diameter = random.randint(10, 15)
                 temp_position = generate_position(diameter)
