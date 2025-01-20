@@ -47,6 +47,13 @@ class Vector2D:
             return Vector2D(self.x * scalar, self.y * scalar)
         raise NotImplementedError("Can only multiply Vector2D by a scalar")
 
+    def __rmul__(self, scalar: int | float) -> "Vector2D":
+        """Multiplication of a vector by a scalar."""
+
+        if isinstance(scalar, (int, float)):
+            return Vector2D(self.x * scalar, self.y * scalar)
+        raise NotImplementedError("Can only multiply Vector2D by a scalar")
+
     def __neg__(self) -> "Vector2D":
         """Negation of the vector (invert through origin.)"""
         return Vector2D(-self.x, -self.y)
